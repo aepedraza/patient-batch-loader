@@ -3,8 +3,7 @@ import org.gradle.internal.os.OperatingSystem
 buildscript {
     repositories {
         mavenLocal()
-        jcenter()
-        maven { url "http://repo.spring.io/plugins-release" }
+        maven { url "https://repo.spring.io/plugins-release" }
         maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
@@ -103,7 +102,6 @@ configurations {
 
 repositories {
     mavenLocal()
-    jcenter()
     maven { url "http://repo.spring.io/plugins-release" }
     maven { url "https://plugins.gradle.org/m2/" }
 }
