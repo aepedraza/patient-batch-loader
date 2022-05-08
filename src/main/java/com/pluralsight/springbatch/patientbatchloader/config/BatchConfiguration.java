@@ -53,7 +53,23 @@ public class BatchConfiguration implements BatchConfigurer {
         return this.jobExplorer;
     }
 
-    protected JobLauncher createJobLauncher() throws Exception {
+    // Handles the actual bean configuration
+    @PostConstruct
+    public void afterPropertiesSet() throws Exception {
+        this.jobRepository = createJobRepository();
+        this.jobExplorer = createJobExplorer();
+        this.jobLauncher = createJobLauncher();
+    }
+
+    private JobRepository createJobRepository() throws Exception {
+        JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
+        factory.setDataSource(this.batchDataSource);
+        factory.setTransactionManager(getTransactionManager());
+        factory.afterPropertiesSet();
+        return factory.getObject();
+    }
+
+    private JobLauncher createJobLauncher() throws Exception {
         // SimpleJobLauncher just executes a job task on demand
         SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
 
@@ -63,22 +79,10 @@ public class BatchConfiguration implements BatchConfigurer {
         return jobLauncher;
     }
 
-    protected JobRepository createJobRepository() throws Exception {
-        JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
-        factory.setDataSource(this.batchDataSource);
-        factory.setTransactionManager(getTransactionManager());
-        factory.afterPropertiesSet();
-        return factory.getObject();
-    }
-
-    // Handles the actual bean configuration
-    @PostConstruct
-    public void afterPropertiesSet() throws Exception {
-        this.jobRepository = createJobRepository();
+    private JobExplorer createJobExplorer() throws Exception {
         JobExplorerFactoryBean jobExplorerFactoryBean = new JobExplorerFactoryBean();
         jobExplorerFactoryBean.setDataSource(this.batchDataSource);
         jobExplorerFactoryBean.afterPropertiesSet();
-        this.jobExplorer = jobExplorerFactoryBean.getObject();
-        this.jobLauncher = createJobLauncher();
+        return jobExplorerFactoryBean.getObject();
     }
 }
