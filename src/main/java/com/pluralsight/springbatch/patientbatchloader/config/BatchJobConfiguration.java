@@ -6,13 +6,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.JobParametersValidator;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,9 @@ public class BatchJobConfiguration {
 
     @Autowired
     private JobBuilderFactory jobBuilderFactory;
+
+    @Autowired
+    private StepBuilderFactory stepBuilderFactory;
 
     @Autowired
     private ApplicationProperties applicationProperties;
@@ -64,5 +68,19 @@ public class BatchJobConfiguration {
                         "be a valid file location.");
             }
         };
+    }
+
+    @Bean
+    public Step step() {
+        return this.stepBuilderFactory
+            .get(Constants.STEP_NAME)
+            // tasklet: Defines what task the step will perform
+            .tasklet((contribution, chunkContext) -> {
+                // StepContribution contribution: Buffer to store details of processing (read, count, etc)
+                // ChunkContext chunkContext: context object for data stored during the duration of a chunk
+                System.err.println("Hello World!");
+                return RepeatStatus.FINISHED; // tell Spring Batch that processing is complete
+            })
+            .build();
     }
 }
