@@ -22,14 +22,6 @@ import io.micrometer.core.instrument.util.StringUtils;
 @Configuration
 public class BatchJobConfiguration {
 
-    /*
-    Job creation as a bean.
-     */
-
-    /**
-     * Bean to create a job builder. We will use SimpleJobBuilder which provides a DSL for defining how the job is
-     * constructed
-     */
     @Autowired
     private JobBuilderFactory jobBuilderFactory;
 
@@ -44,7 +36,7 @@ public class BatchJobConfiguration {
     }
 
     @Bean
-    public Job job(Step step) throws Exception {
+    public Job job(Step step) {
         return this.jobBuilderFactory
             .get(Constants.JOB_NAME)
             .validator(validator())
@@ -54,25 +46,22 @@ public class BatchJobConfiguration {
 
     @Bean
     public JobParametersValidator validator() {
-        return new JobParametersValidator() {
-            @Override
-            public void validate(JobParameters parameters) throws JobParametersInvalidException {
-                String fileName = parameters.getString(Constants.JOB_PARAM_FILE_NAME);
-                if (StringUtils.isBlank(fileName)) {
-                    throw new JobParametersInvalidException(
-                        "The patient-batch-loader.fileName parameter is required.");
+        return parameters -> {
+            String fileName = parameters.getString(Constants.JOB_PARAM_FILE_NAME);
+            if (StringUtils.isBlank(fileName)) {
+                throw new JobParametersInvalidException(
+                    "The patient-batch-loader.fileName parameter is required.");
+            }
+            try {
+                Path file = Paths.get(applicationProperties.getBatch().getInputPath() +
+                    File.separator + fileName);
+                if (Files.notExists(file) || !Files.isReadable(file)) {
+                    throw new Exception("File did not exist or was not readable");
                 }
-                try {
-                    Path file = Paths.get(applicationProperties.getBatch().getInputPath() +
-                        File.separator + fileName);
-                    if (Files.notExists(file) || !Files.isReadable(file)) {
-                        throw new Exception("File did not exist or was not readable");
-                    }
-                } catch (Exception e) {
-                    throw new JobParametersInvalidException(
-                        "The input path + patient-batch-loader.fileName parameter needs to " +
-                            "be a valid file location.");
-                }
+            } catch (Exception e) {
+                throw new JobParametersInvalidException(
+                    "The input path + patient-batch-loader.fileName parameter needs to " +
+                        "be a valid file location.");
             }
         };
     }
