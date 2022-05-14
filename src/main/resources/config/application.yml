@@ -49,6 +49,3 @@ management:
 # ===================================================================
 # Application specific properties
 # ===================================================================
-application:
-    batch:
-        inputPath: ./patient-batch-loader/data

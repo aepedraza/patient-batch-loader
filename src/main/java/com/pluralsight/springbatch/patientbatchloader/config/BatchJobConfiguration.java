@@ -52,22 +52,29 @@ public class BatchJobConfiguration {
     public JobParametersValidator validator() {
         return parameters -> {
             String fileName = parameters.getString(Constants.JOB_PARAM_FILE_NAME);
-            if (StringUtils.isBlank(fileName)) {
-                throw new JobParametersInvalidException(
-                    "The patient-batch-loader.fileName parameter is required.");
-            }
-            try {
-                Path file = Paths.get(applicationProperties.getBatch().getInputPath() +
-                    File.separator + fileName);
-                if (Files.notExists(file) || !Files.isReadable(file)) {
-                    throw new Exception("File did not exist or was not readable");
-                }
-            } catch (Exception e) {
-                throw new JobParametersInvalidException(
-                    "The input path + patient-batch-loader.fileName parameter needs to " +
-                        "be a valid file location.");
-            }
+            validateFileName(fileName);
+
+            String pathFileName = applicationProperties.getBatch().getInputPath() + File.separator + fileName;
+            validatePath(pathFileName);
         };
+    }
+
+    private void validateFileName(String fileName) throws JobParametersInvalidException {
+        if (StringUtils.isBlank(fileName)) {
+            throw new JobParametersInvalidException(
+                "The patient-batch-loader.fileName parameter is required.");
+        }
+    }
+
+    private void validatePath(String fullName) throws JobParametersInvalidException {
+        try {
+            Path file = Paths.get(fullName);
+            if (Files.notExists(file) || !Files.isReadable(file)) {
+                throw new Exception("File did not exist or was not readable");
+            }
+        } catch (Exception e) {
+            throw new JobParametersInvalidException(String.format("%s is not a valid file location", fullName));
+        }
     }
 
     @Bean

@@ -1,5 +1,7 @@
 package com.pluralsight.springbatch.patientbatchloader.config;
 
+import java.io.File;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -17,7 +19,7 @@ public class ApplicationProperties {
     }
 
     public static class Batch {
-        private String inputPath = "./patient-batch-loader/data";
+        private String inputPath = new File("data").getAbsolutePath();
 
         public String getInputPath() {
             return this.inputPath;
