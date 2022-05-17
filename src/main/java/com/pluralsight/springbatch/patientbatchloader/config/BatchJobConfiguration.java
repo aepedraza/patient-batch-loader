@@ -22,7 +22,7 @@ import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
-import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.batch.item.support.PassThroughItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -93,7 +93,7 @@ public class BatchJobConfiguration {
     @Bean
     @StepScope
     public FlatFileItemReader<PatientRecord> reader(
-        @Value("#{jobParameters['" + Constants.JOB_PARAM_FILE_NAME + "']}")String fileName) {
+        @Value("#{jobParameters['" + Constants.JOB_PARAM_FILE_NAME + "']}") String fileName) {
         return new FlatFileItemReaderBuilder<PatientRecord>()
             .name(Constants.ITEM_READER_NAME)
             .resource(
@@ -121,21 +121,29 @@ public class BatchJobConfiguration {
     }
 
     @Bean
+    @StepScope
+    public ItemProcessor<PatientRecord, PatientRecord> processor() {
+        // just return a do-nothing processor
+        return new PassThroughItemProcessor<>();
+    }
+
+    @Bean
     public Step step(ItemReader<PatientRecord> itemReader) {
         return this.stepBuilderFactory
             .get(Constants.STEP_NAME)
-            .<PatientRecord, PatientRecord> chunk(2) // config chunk processing with defined size
+            .<PatientRecord, PatientRecord>chunk(2) // config chunk processing with defined size
             .reader(itemReader) // injected itemReader bean
             .processor(processor())
             .writer(writer())
             .build();
     }
 
-    private ItemProcessor<PatientRecord, PatientRecord> processor() {
-        return null;
-    }
-
     private ItemWriter<PatientRecord> writer() {
-        return null;
+        return items -> {
+            // just write to the console to check that records are arriving correctly
+            for (PatientRecord record : items) {
+                System.err.println("Writing item: " + record.toString());
+            }
+        };
     }
 }
