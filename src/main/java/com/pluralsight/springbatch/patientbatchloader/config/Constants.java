@@ -38,6 +38,8 @@ public final class Constants {
 
     public static final String STEP_NAME = "process-patients-step";
 
-    private Constants() {
+    public static final String ITEM_READER_NAME = "patient-item-reader";
+
+	private Constants() {
 	}
 }
