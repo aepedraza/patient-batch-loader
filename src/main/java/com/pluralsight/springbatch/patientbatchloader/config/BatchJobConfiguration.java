@@ -13,10 +13,15 @@ import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.pluralsight.springbatch.patientbatchloader.domain.PatientRecord;
 
 import io.micrometer.core.instrument.util.StringUtils;
 
@@ -78,16 +83,21 @@ public class BatchJobConfiguration {
     }
 
     @Bean
-    public Step step() {
+    public Step step(ItemReader<PatientRecord> itemReader) {
         return this.stepBuilderFactory
             .get(Constants.STEP_NAME)
-            // tasklet: Defines what task the step will perform
-            .tasklet((contribution, chunkContext) -> {
-                // StepContribution contribution: Buffer to store details of processing (read, count, etc)
-                // ChunkContext chunkContext: context object for data stored during the duration of a chunk
-                System.err.println("Hello World!");
-                return RepeatStatus.FINISHED; // tell Spring Batch that processing is complete
-            })
+            .<PatientRecord, PatientRecord> chunk(2) // config chunk processing with defined size
+            .reader(itemReader) // injected itemReader bean
+            .processor(processor())
+            .writer(writer())
             .build();
+    }
+
+    private ItemProcessor<PatientRecord, PatientRecord> processor() {
+        return null;
+    }
+
+    private ItemWriter<PatientRecord> writer() {
+        return null;
     }
 }
