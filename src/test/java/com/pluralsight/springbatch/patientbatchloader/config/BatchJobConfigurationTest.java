@@ -1,6 +1,7 @@
 package com.pluralsight.springbatch.patientbatchloader.config;
 
 import java.util.HashMap;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,12 +11,16 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.test.MetaDataInstanceFactory;
+import org.springframework.batch.test.StepScopeTestExecutionListener;
 import org.springframework.batch.test.StepScopeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestExecutionListeners;
+import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import com.pluralsight.springbatch.patientbatchloader.PatientBatchLoaderApp;
+import com.pluralsight.springbatch.patientbatchloader.domain.PatientEntity;
 import com.pluralsight.springbatch.patientbatchloader.domain.PatientRecord;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -25,6 +30,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest(classes = PatientBatchLoaderApp.class)
 @ActiveProfiles("dev")
+@TestExecutionListeners({
+    DependencyInjectionTestExecutionListener.class, // Enables DI and initialization of test instances
+    StepScopeTestExecutionListener.class // Sets up step scope context
+})
 class BatchJobConfigurationTest {
 
     private JobParameters jobParameters;
@@ -34,6 +43,9 @@ class BatchJobConfigurationTest {
 
     @Autowired
     private FlatFileItemReader<PatientRecord> reader;
+
+    @Autowired
+    private Function<PatientRecord, PatientEntity> processor;
 
     @BeforeEach
     public void setupJobParameters() {
@@ -101,6 +113,48 @@ class BatchJobConfigurationTest {
         } catch (Exception e) {
             fail(e.toString());
         }
+    }
+
+    @Test
+    public void testProcessor() {
+        PatientRecord patientRecord = recordForTest();
+        PatientEntity entity = processor.apply(patientRecord);
+        assertEntity(entity);
+    }
+
+    private PatientRecord recordForTest() {
+        return new PatientRecord(
+            "72739d22-3c12-539b-b3c2-13d9d4224d40",
+            "Hettie",
+            "P",
+            "Schmidt",
+            "rodo@uge.li",
+            "(805) 384-3727",
+            "Hutij Terrace",
+            "Kahgepu",
+            "ID",
+            "40239",
+            "6/14/1961",
+            "I",
+            "071-81-2500");
+    }
+
+    private void assertEntity(PatientEntity entity) {
+        assertNotNull(entity);
+        assertEquals("72739d22-3c12-539b-b3c2-13d9d4224d40", entity.getSourceId());
+        assertEquals("Hettie", entity.getFirstName());
+        assertEquals("P", entity.getMiddleInitial());
+        assertEquals("Schmidt", entity.getLastName());
+        assertEquals("rodo@uge.li", entity.getEmailAddress());
+        assertEquals("(805) 384-3727", entity.getPhoneNumber());
+        assertEquals("Hutij Terrace", entity.getStreet());
+        assertEquals("Kahgepu", entity.getCity());
+        assertEquals("ID", entity.getState());
+        assertEquals("40239", entity.getZipCode());
+        assertEquals(14, entity.getBirthDate().getDayOfMonth());
+        assertEquals(6, entity.getBirthDate().getMonthValue());
+        assertEquals(1961, entity.getBirthDate().getYear());
+        assertEquals("071-81-2500", entity.getSocialSecurityNumber());
     }
 
 }
