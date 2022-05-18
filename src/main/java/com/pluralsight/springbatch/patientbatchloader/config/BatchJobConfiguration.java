@@ -4,6 +4,10 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.function.Function;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersInvalidException;
@@ -14,7 +18,6 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
-import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
@@ -22,13 +25,13 @@ import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
-import org.springframework.batch.item.support.PassThroughItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.PathResource;
 
+import com.pluralsight.springbatch.patientbatchloader.domain.PatientEntity;
 import com.pluralsight.springbatch.patientbatchloader.domain.PatientRecord;
 
 import io.micrometer.core.instrument.util.StringUtils;
@@ -122,28 +125,44 @@ public class BatchJobConfiguration {
 
     @Bean
     @StepScope
-    public ItemProcessor<PatientRecord, PatientRecord> processor() {
-        // just return a do-nothing processor
-        return new PassThroughItemProcessor<>();
+    public Function<PatientRecord, PatientEntity> processor() {
+        return (patientRecord) -> new PatientEntity(
+            patientRecord.getSourceId(),
+            patientRecord.getFirstName(),
+            patientRecord.getMiddleInitial(),
+            patientRecord.getLastName(),
+            patientRecord.getEmailAddress(),
+            patientRecord.getPhoneNumber(),
+            patientRecord.getStreet(),
+            patientRecord.getCity(),
+            patientRecord.getState(),
+            patientRecord.getZip(),
+            LocalDate.parse(patientRecord.getBirthDate(), DateTimeFormatter.ofPattern("M/dd/yyyy")),
+            patientRecord.getSsn());
     }
 
     @Bean
-    public Step step(ItemReader<PatientRecord> itemReader) {
-        return this.stepBuilderFactory
-            .get(Constants.STEP_NAME)
-            .<PatientRecord, PatientRecord>chunk(2) // config chunk processing with defined size
-            .reader(itemReader) // injected itemReader bean
-            .processor(processor())
-            .writer(writer())
-            .build();
-    }
-
-    private ItemWriter<PatientRecord> writer() {
-        return items -> {
-            // just write to the console to check that records are arriving correctly
-            for (PatientRecord record : items) {
-                System.err.println("Writing item: " + record.toString());
+    @StepScope
+    public ItemWriter<PatientEntity> writer() {
+        return new ItemWriter<PatientEntity>() {
+            @Override
+            public void write(List<? extends PatientEntity> items) throws Exception {
+                for (PatientEntity patientEntity : items) {
+                    System.err.println("Writing item: " + patientEntity.toString());
+                }
             }
         };
+    }
+
+    @Bean
+    public Step step(ItemReader<PatientRecord> itemReader,
+        Function<PatientRecord, PatientEntity> processor) {
+        return this.stepBuilderFactory
+            .get(Constants.STEP_NAME)
+            .<PatientRecord, PatientEntity>chunk(2) // config chunk processing with defined size
+            .reader(itemReader) // injected itemReader bean
+            .processor(processor)
+            .writer(writer())
+            .build();
     }
 }
