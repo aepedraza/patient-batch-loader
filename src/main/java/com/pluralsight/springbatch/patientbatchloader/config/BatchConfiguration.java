@@ -16,13 +16,19 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 
+/**
+ * Custom {@link BatchConfigurer} implementation to control the configuration of {@link JobRepository}, {@link
+ * JobExplorer} and {@link JobLauncher}
+ *
+ * @author alvaro.pedraza
+ */
 @Component
-@EnableBatchProcessing
+@EnableBatchProcessing // Triggers Sp Batch to include and configure feats as beans
 public class BatchConfiguration implements BatchConfigurer {
 
-    private JobRepository jobRepository;
-    private JobExplorer jobExplorer;
-    private JobLauncher jobLauncher;
+    private JobRepository jobRepository; // persists meta-data about batch jobs
+    private JobExplorer jobExplorer; // retrieves meta-data from the job repository (provides getters)
+    private JobLauncher jobLauncher; // run jobs with given parameters
 
     // Driver for the datasource configuration override
     @Autowired
